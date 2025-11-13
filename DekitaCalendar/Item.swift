@@ -9,10 +9,18 @@ import Foundation
 import SwiftData
 
 @Model
-final class Item {
-    var timestamp: Date
-    
-    init(timestamp: Date) {
-        self.timestamp = timestamp
+final class CalendarEvent {
+    var title: String
+    var date: Date
+    var notes: String
+    var isCompleted: Bool
+    var createdAt: Date
+
+    init(title: String, date: Date, notes: String = "", isCompleted: Bool = false) {
+        self.title = title
+        self.date = date
+        self.notes = notes
+        self.isCompleted = isCompleted
+        self.createdAt = Date()
     }
 }
