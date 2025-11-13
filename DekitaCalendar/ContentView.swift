@@ -193,7 +193,8 @@ struct DayCell: View {
 
             Spacer(minLength: 0)
         }
-        .frame(height: 60)
+        .frame(maxWidth: .infinity)
+        .aspectRatio(1, contentMode: .fit)
         .background(
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color.gray.opacity(0.05))
