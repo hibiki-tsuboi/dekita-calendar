@@ -42,7 +42,7 @@ struct ContentView: View {
             .navigationTitle("できたカレンダー")
             .sheet(isPresented: $showingDayEvents) {
                 if let date = selectedDate {
-                    DayEventsView(date: date, events: eventsForDate(date))
+                    DayEventsView(date: date)
                 }
             }
         }
@@ -211,11 +211,20 @@ struct DayCell: View {
 struct DayEventsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Query private var allEvents: [CalendarEvent]
 
     let date: Date
-    let events: [CalendarEvent]
-    @State private var showingAddEvent = false
-    @State private var selectedEvent: CalendarEvent?
+    @State private var events: [CalendarEvent] = []
+    @State private var editingEvent: CalendarEvent?
+    @State private var editingTitle: String = ""
+    @State private var isAddingNew = false
+    @State private var newEventTitle = ""
+    @FocusState private var focusedField: Field?
+
+    enum Field: Hashable {
+        case newTitle
+        case editTitle(CalendarEvent)
+    }
 
     private var dateString: String {
         let formatter = DateFormatter()
@@ -224,51 +233,130 @@ struct DayEventsView: View {
         return formatter.string(from: date)
     }
 
+    private func loadEvents() {
+        events = allEvents.filter { event in
+            Calendar.current.isDate(event.date, inSameDayAs: date)
+        }
+    }
+
     var body: some View {
         NavigationStack {
             List {
-                ForEach(events) { event in
-                    Button(action: {
-                        selectedEvent = event
-                    }) {
-                        HStack {
-                            Image(systemName: event.isCompleted ? "checkmark.circle.fill" : "circle")
-                                .foregroundColor(event.isCompleted ? .green : .gray)
-                                .font(.title3)
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(event.title)
-                                    .font(.headline)
-                                    .foregroundColor(.primary)
-
-                                if !event.notes.isEmpty {
-                                    Text(event.notes)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(1)
+                // 新規イベント追加セクション
+                Section {
+                    if isAddingNew {
+                        VStack(spacing: 8) {
+                            TextField("イベント名", text: $newEventTitle)
+                                .focused($focusedField, equals: .newTitle)
+                                .textFieldStyle(.plain)
+                                .font(.headline)
+                            
+                            HStack {
+                                Button("キャンセル") {
+                                    withAnimation {
+                                        isAddingNew = false
+                                        newEventTitle = ""
+                                    }
+                                }
+                                .buttonStyle(.bordered)
+                                
+                                Spacer()
+                                
+                                Button("追加") {
+                                    addNewEvent()
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .disabled(newEventTitle.isEmpty)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    } else {
+                        Button(action: {
+                            withAnimation {
+                                isAddingNew = true
+                                focusedField = .newTitle
+                            }
+                        }) {
+                            Label("イベントを追加", systemImage: "plus.circle.fill")
+                                .foregroundColor(.blue)
+                        }
+                    }
+                }
+                
+                // イベントリスト
+                if !events.isEmpty {
+                    Section {
+                        ForEach(events) { event in
+                            if editingEvent?.id == event.id {
+                                // 編集モード
+                                VStack(spacing: 8) {
+                                    HStack {
+                                        TextField("イベント名", text: $editingTitle)
+                                            .focused($focusedField, equals: .editTitle(event))
+                                            .textFieldStyle(.plain)
+                                            .font(.headline)
+                                        
+                                        Toggle("", isOn: Binding(
+                                            get: { event.isCompleted },
+                                            set: { newValue in
+                                                withAnimation {
+                                                    event.isCompleted = newValue
+                                                }
+                                            }
+                                        ))
+                                        .labelsHidden()
+                                    }
+                                    
+                                    HStack {
+                                        Button("キャンセル") {
+                                            withAnimation {
+                                                editingEvent = nil
+                                            }
+                                        }
+                                        .buttonStyle(.bordered)
+                                        
+                                        Spacer()
+                                        
+                                        Button("保存") {
+                                            saveEdit(event)
+                                        }
+                                        .buttonStyle(.borderedProminent)
+                                        .disabled(editingTitle.isEmpty)
+                                    }
+                                }
+                                .padding(.vertical, 4)
+                            } else {
+                                // 表示モード
+                                HStack {
+                                    Button(action: {
+                                        startEditing(event)
+                                    }) {
+                                        Text(event.title)
+                                            .font(.headline)
+                                            .foregroundColor(.primary)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                    .buttonStyle(.plain)
+                                    
+                                    Toggle("", isOn: Binding(
+                                        get: { event.isCompleted },
+                                        set: { newValue in
+                                            withAnimation {
+                                                event.isCompleted = newValue
+                                            }
+                                        }
+                                    ))
+                                    .labelsHidden()
+                                }
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        deleteEvent(event)
+                                    } label: {
+                                        Label("削除", systemImage: "trash")
+                                    }
                                 }
                             }
-
-                            Spacer()
                         }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button(role: .destructive) {
-                            deleteEvent(event)
-                        } label: {
-                            Label("削除", systemImage: "trash")
-                        }
-                    }
-                    .swipeActions(edge: .leading) {
-                        Button {
-                            toggleComplete(event)
-                        } label: {
-                            Label(event.isCompleted ? "未完了" : "完了",
-                                  systemImage: event.isCompleted ? "arrow.uturn.backward" : "checkmark")
-                        }
-                        .tint(event.isCompleted ? .orange : .green)
                     }
                 }
             }
@@ -280,25 +368,37 @@ struct DayEventsView: View {
                         dismiss()
                     }
                 }
-
-                ToolbarItem(placement: .primaryAction) {
-                    Button(action: { showingAddEvent = true }) {
-                        Label("追加", systemImage: "plus")
-                    }
-                }
             }
-            .sheet(isPresented: $showingAddEvent) {
-                AddEventView(date: date)
+            .onAppear {
+                loadEvents()
             }
-            .sheet(item: $selectedEvent) { event in
-                EventDetailView(event: event)
+            .onChange(of: allEvents) {
+                loadEvents()
             }
         }
     }
 
-    private func toggleComplete(_ event: CalendarEvent) {
+    private func addNewEvent() {
+        let event = CalendarEvent(title: newEventTitle, date: date, notes: "")
         withAnimation {
-            event.isCompleted.toggle()
+            modelContext.insert(event)
+            isAddingNew = false
+            newEventTitle = ""
+        }
+    }
+
+    private func startEditing(_ event: CalendarEvent) {
+        withAnimation {
+            editingEvent = event
+            editingTitle = event.title
+            focusedField = .editTitle(event)
+        }
+    }
+
+    private func saveEdit(_ event: CalendarEvent) {
+        withAnimation {
+            event.title = editingTitle
+            editingEvent = nil
         }
     }
 
@@ -306,173 +406,6 @@ struct DayEventsView: View {
         withAnimation {
             modelContext.delete(event)
         }
-    }
-}
-
-// MARK: - Add Event View
-
-struct AddEventView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
-
-    let date: Date
-    @State private var title = ""
-    @State private var notes = ""
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    TextField("イベント名", text: $title)
-
-                    DatePicker("日付", selection: .constant(date), displayedComponents: .date)
-                        .disabled(true)
-                }
-
-                Section("メモ") {
-                    TextEditor(text: $notes)
-                        .frame(height: 100)
-                }
-            }
-            .navigationTitle("イベントを追加")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("キャンセル") {
-                        dismiss()
-                    }
-                }
-
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("追加") {
-                        addEvent()
-                    }
-                    .disabled(title.isEmpty)
-                }
-            }
-        }
-    }
-
-    private func addEvent() {
-        let event = CalendarEvent(title: title, date: date, notes: notes)
-        modelContext.insert(event)
-        dismiss()
-    }
-}
-
-// MARK: - Event Detail View
-
-struct EventDetailView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
-
-    @State var event: CalendarEvent
-    @State private var isEditing = false
-    @State private var editedTitle: String
-    @State private var editedNotes: String
-
-    init(event: CalendarEvent) {
-        self._event = State(initialValue: event)
-        self._editedTitle = State(initialValue: event.title)
-        self._editedNotes = State(initialValue: event.notes)
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    if isEditing {
-                        TextField("イベント名", text: $editedTitle)
-                    } else {
-                        HStack {
-                            Text("イベント名")
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Text(event.title)
-                        }
-                    }
-
-                    HStack {
-                        Text("日付")
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Text(event.date, format: .dateTime.year().month().day())
-                    }
-
-                    HStack {
-                        Text("ステータス")
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Text(event.isCompleted ? "完了" : "未完了")
-                            .foregroundColor(event.isCompleted ? .green : .orange)
-                    }
-                }
-
-                Section("メモ") {
-                    if isEditing {
-                        TextEditor(text: $editedNotes)
-                            .frame(height: 100)
-                    } else {
-                        Text(event.notes.isEmpty ? "メモなし" : event.notes)
-                            .foregroundColor(event.notes.isEmpty ? .secondary : .primary)
-                    }
-                }
-
-                if !isEditing {
-                    Section {
-                        Button(action: {
-                            event.isCompleted.toggle()
-                        }) {
-                            Label(
-                                event.isCompleted ? "未完了にする" : "完了にする",
-                                systemImage: event.isCompleted ? "arrow.uturn.backward" : "checkmark"
-                            )
-                        }
-
-                        Button(role: .destructive, action: deleteEvent) {
-                            Label("イベントを削除", systemImage: "trash")
-                        }
-                    }
-                }
-            }
-            .navigationTitle("イベント詳細")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(isEditing ? "キャンセル" : "閉じる") {
-                        if isEditing {
-                            editedTitle = event.title
-                            editedNotes = event.notes
-                            isEditing = false
-                        } else {
-                            dismiss()
-                        }
-                    }
-                }
-
-                ToolbarItem(placement: .primaryAction) {
-                    Button(isEditing ? "完了" : "編集") {
-                        if isEditing {
-                            saveChanges()
-                        } else {
-                            isEditing = true
-                        }
-                    }
-                    .disabled(isEditing && editedTitle.isEmpty)
-                }
-            }
-        }
-    }
-
-    private func saveChanges() {
-        event.title = editedTitle
-        event.notes = editedNotes
-        isEditing = false
-    }
-
-    private func deleteEvent() {
-        modelContext.delete(event)
-        dismiss()
     }
 }
 
