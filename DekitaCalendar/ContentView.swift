@@ -234,58 +234,23 @@ struct DayEventsView: View {
     }
 
     private func loadEvents() {
-        events = allEvents.filter { event in
-            Calendar.current.isDate(event.date, inSameDayAs: date)
-        }
+        events = allEvents
+            .filter { event in
+                Calendar.current.isDate(event.date, inSameDayAs: date)
+            }
+            .sorted { $0.createdAt < $1.createdAt }
     }
 
     var body: some View {
         NavigationStack {
             List {
-                // 新規イベント追加セクション
-                Section {
-                    if isAddingNew {
-                        VStack(spacing: 8) {
-                            TextField("イベント名", text: $newEventTitle)
-                                .focused($focusedField, equals: .newTitle)
-                                .textFieldStyle(.plain)
-                                .font(.headline)
-                            
-                            HStack {
-                                Button("キャンセル") {
-                                    withAnimation {
-                                        isAddingNew = false
-                                        newEventTitle = ""
-                                    }
-                                }
-                                .buttonStyle(.bordered)
-                                
-                                Spacer()
-                                
-                                Button("追加") {
-                                    addNewEvent()
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .disabled(newEventTitle.isEmpty)
-                            }
-                        }
-                        .padding(.vertical, 4)
-                    } else {
-                        Button(action: {
-                            withAnimation {
-                                isAddingNew = true
-                                focusedField = .newTitle
-                            }
-                        }) {
-                            Label("イベントを追加", systemImage: "plus.circle.fill")
-                                .foregroundColor(.blue)
-                        }
-                    }
-                }
-                
                 // イベントリスト
-                if !events.isEmpty {
-                    Section {
+                Section {
+                    if events.isEmpty {
+                        Text("イベントがありません")
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    } else {
                         ForEach(events) { event in
                             if editingEvent?.id == event.id {
                                 // 編集モード
@@ -359,6 +324,37 @@ struct DayEventsView: View {
                         }
                     }
                 }
+                
+                // 新規イベント追加セクション（インライン）
+                if isAddingNew {
+                    Section {
+                        VStack(spacing: 8) {
+                            TextField("イベント名", text: $newEventTitle)
+                                .focused($focusedField, equals: .newTitle)
+                                .textFieldStyle(.plain)
+                                .font(.headline)
+                            
+                            HStack {
+                                Button("キャンセル") {
+                                    withAnimation {
+                                        isAddingNew = false
+                                        newEventTitle = ""
+                                    }
+                                }
+                                .buttonStyle(.bordered)
+                                
+                                Spacer()
+                                
+                                Button("追加") {
+                                    addNewEvent()
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .disabled(newEventTitle.isEmpty)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
             }
             .navigationTitle(dateString)
             .navigationBarTitleDisplayMode(.inline)
@@ -366,6 +362,17 @@ struct DayEventsView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("閉じる") {
                         dismiss()
+                    }
+                }
+                
+                ToolbarItem(placement: .primaryAction) {
+                    Button(action: {
+                        withAnimation {
+                            isAddingNew = true
+                            focusedField = .newTitle
+                        }
+                    }) {
+                        Label("追加", systemImage: "plus")
                     }
                 }
             }
