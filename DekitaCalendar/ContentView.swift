@@ -573,15 +573,6 @@ struct DayEventsView: View {
 
     private func eventRow(_ event: CalendarEvent) -> some View {
         HStack(spacing: 12) {
-            // アイコン
-            Image(systemName: event.isCompleted ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: 24))
-                .foregroundStyle(
-                    event.isCompleted ?
-                        LinearGradient(colors: [.green, .mint], startPoint: .top, endPoint: .bottom) :
-                        LinearGradient(colors: [.orange, .pink], startPoint: .top, endPoint: .bottom)
-                )
-
             // イベント名
             Button {
                 startEditing(event)
@@ -589,7 +580,6 @@ struct DayEventsView: View {
                 Text(event.title)
                     .font(.system(size: 18, weight: .semibold, design: .rounded))
                     .foregroundColor(.black)
-                    .strikethrough(event.isCompleted, color: .gray)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(.plain)
