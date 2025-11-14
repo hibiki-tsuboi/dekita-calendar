@@ -13,9 +13,17 @@ struct ContentView: View {
     @Query private var events: [CalendarEvent]
     @State private var currentMonth = Date()
     @State private var selectedDate: Date?
+    @State private var bounceAnimation = false
 
     private let calendar = Calendar.current
     private let daysOfWeek = ["日", "月", "火", "水", "木", "金", "土"]
+    
+    // ポップなカラーパレット
+    private let headerGradient = LinearGradient(
+        colors: [Color(red: 1.0, green: 0.6, blue: 0.8), Color(red: 0.6, green: 0.8, blue: 1.0)],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
 
     private var currentMonthString: String {
         let formatter = DateFormatter()
@@ -26,19 +34,37 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // 月選択ヘッダー
-                monthHeader
+            ZStack {
+                // 楽しい背景
+                LinearGradient(
+                    colors: [
+                        Color(red: 1.0, green: 0.95, blue: 0.85),
+                        Color(red: 0.9, green: 0.95, blue: 1.0)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+                
+                VStack(spacing: 16) {
+                    // 月選択ヘッダー
+                    monthHeader
 
-                // 曜日ヘッダー
-                weekdayHeader
+                    // 曜日ヘッダー
+                    weekdayHeader
 
-                // カレンダーグリッド
-                calendarGrid
+                    // カレンダーグリッド
+                    calendarGrid
 
-                Spacer()
+                    Spacer()
+                }
             }
-            .navigationTitle("できたカレンダー")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    EmptyView()
+                }
+            }
             .sheet(isPresented: Binding<Bool>(
                 get: { selectedDate != nil },
                 set: { if !$0 { selectedDate = nil } }
@@ -48,69 +74,111 @@ struct ContentView: View {
                 }
             }
         }
+        .persistentSystemOverlays(.hidden)
     }
 
     // MARK: - Views
 
     private var monthHeader: some View {
-        HStack {
+        HStack(spacing: 20) {
             Button(action: previousMonth) {
-                Image(systemName: "chevron.left")
-                    .font(.title2)
+                Image(systemName: "arrow.left.circle.fill")
+                    .font(.system(size: 32))
+                    .foregroundStyle(headerGradient)
+                    .shadow(color: .purple.opacity(0.3), radius: 4, x: 0, y: 2)
             }
 
             Spacer()
 
             Text(currentMonthString)
-                .font(.title2)
-                .fontWeight(.bold)
+                .font(.system(size: 28, weight: .heavy, design: .rounded))
+                .foregroundStyle(headerGradient)
 
             Spacer()
 
             Button(action: nextMonth) {
-                Image(systemName: "chevron.right")
-                    .font(.title2)
+                Image(systemName: "arrow.right.circle.fill")
+                    .font(.system(size: 32))
+                    .foregroundStyle(headerGradient)
+                    .shadow(color: .purple.opacity(0.3), radius: 4, x: 0, y: 2)
             }
         }
         .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(.white)
+                .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+        )
+        .padding(.horizontal)
     }
 
     private var weekdayHeader: some View {
         HStack(spacing: 0) {
-            ForEach(daysOfWeek, id: \.self) { day in
-                Text(day)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .frame(maxWidth: .infinity)
-                    .foregroundColor(day == "日" ? .red : day == "土" ? .blue : .primary)
+            ForEach(Array(daysOfWeek.enumerated()), id: \.offset) { index, day in
+                VStack(spacing: 2) {
+                    // 曜日の絵文字
+                    Text(dayEmoji(for: index))
+                        .font(.system(size: 18))
+                    
+                    Text(day)
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundStyle(
+                            day == "日" ? 
+                                LinearGradient(colors: [.red, .orange], startPoint: .top, endPoint: .bottom) :
+                            day == "土" ? 
+                                LinearGradient(colors: [.blue, .cyan], startPoint: .top, endPoint: .bottom) :
+                                LinearGradient(colors: [.purple, .pink], startPoint: .top, endPoint: .bottom)
+                        )
+                }
+                .frame(maxWidth: .infinity)
             }
         }
         .padding(.horizontal)
-        .padding(.bottom, 8)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.white.opacity(0.7))
+        )
+        .padding(.horizontal)
+    }
+    
+    private func dayEmoji(for index: Int) -> String {
+        let emojis = ["☀️", "🌙", "🔥", "💧", "🌳", "⭐", "🌈"]
+        return emojis[index]
     }
 
     private var calendarGrid: some View {
         let days = generateDaysInMonth()
-        let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
+        let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 7)
 
-        return LazyVGrid(columns: columns, spacing: 12) {
+        return LazyVGrid(columns: columns, spacing: 8) {
             ForEach(days, id: \.self) { date in
                 if let date = date {
-                    DayCell(
-                        date: date,
-                        events: eventsForDate(date),
-                        isCurrentMonth: calendar.isDate(date, equalTo: currentMonth, toGranularity: .month),
-                        isToday: calendar.isDateInToday(date)
-                    )
-                    .onTapGesture {
-                        selectedDate = date
+                    Button {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                            selectedDate = date
+                        }
+                    } label: {
+                        DayCell(
+                            date: date,
+                            events: eventsForDate(date),
+                            isCurrentMonth: calendar.isDate(date, equalTo: currentMonth, toGranularity: .month),
+                            isToday: calendar.isDateInToday(date)
+                        )
                     }
+                    .buttonStyle(DayCellButtonStyle())
                 } else {
                     Color.clear
                         .aspectRatio(1, contentMode: .fit)
                 }
             }
         }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(.white.opacity(0.5))
+                .shadow(color: .black.opacity(0.05), radius: 10)
+        )
         .padding(.horizontal)
     }
 
@@ -155,6 +223,16 @@ struct ContentView: View {
     }
 }
 
+// MARK: - Day Cell Button Style
+
+struct DayCellButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
+    }
+}
+
 // MARK: - Day Cell
 
 struct DayCell: View {
@@ -162,6 +240,10 @@ struct DayCell: View {
     let events: [CalendarEvent]
     let isCurrentMonth: Bool
     let isToday: Bool
+    
+    @State private var showCelebration = false
+    
+    private let calendar = Calendar.current
 
     private var dayNumber: String {
         let formatter = DateFormatter()
@@ -172,34 +254,123 @@ struct DayCell: View {
     private var allEventsCompleted: Bool {
         !events.isEmpty && events.allSatisfy { $0.isCompleted }
     }
+    
+    private var weekday: Int {
+        calendar.component(.weekday, from: date)
+    }
+    
+    private var isSunday: Bool {
+        weekday == 1
+    }
+    
+    private var isSaturday: Bool {
+        weekday == 7
+    }
+    
+    private var dayNumberColor: LinearGradient {
+        if !isCurrentMonth {
+            return LinearGradient(colors: [.gray.opacity(0.3)], startPoint: .top, endPoint: .bottom)
+        }
+        
+        if isToday {
+            return LinearGradient(colors: [.orange, .red], startPoint: .top, endPoint: .bottom)
+        }
+        
+        if isSunday {
+            return LinearGradient(colors: [.red], startPoint: .top, endPoint: .bottom)
+        }
+        
+        if isSaturday {
+            return LinearGradient(colors: [.blue], startPoint: .top, endPoint: .bottom)
+        }
+        
+        return LinearGradient(colors: [.black], startPoint: .top, endPoint: .bottom)
+    }
+    
+    private var cellGradient: LinearGradient {
+        if isToday {
+            return LinearGradient(
+                colors: [Color(red: 0.6, green: 0.8, blue: 1.0), Color(red: 0.8, green: 0.6, blue: 1.0)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else {
+            return LinearGradient(
+                colors: [.white, Color(red: 0.98, green: 0.98, blue: 1.0)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
+    }
 
     var body: some View {
         VStack(spacing: 4) {
             Text(dayNumber)
-                .font(.system(size: 16))
-                .fontWeight(isToday ? .bold : .regular)
-                .foregroundColor(isCurrentMonth ? .primary : .gray)
-                .frame(width: 28, height: 28)
+                .font(.system(size: 18, weight: isToday ? .black : .bold, design: .rounded))
+                .foregroundStyle(dayNumberColor)
+                .frame(width: 32, height: 32)
                 .background(
                     Circle()
-                        .fill(isToday ? Color.blue.opacity(0.2) : Color.clear)
+                        .fill(isToday ? Color.yellow.opacity(0.3) : Color.clear)
+                        .overlay(
+                            Circle()
+                                .stroke(isToday ? Color.orange : Color.clear, lineWidth: 2)
+                        )
                 )
 
-            // 全てのイベントが完了したら大きな星マークを表示
+            // 全てのイベントが完了したら超大きなキラキラ星を表示
             if allEventsCompleted {
-                Image(systemName: "star.fill")
-                    .font(.system(size: 40))
-                    .foregroundColor(.yellow)
-                    .shadow(color: .orange, radius: 3)
-            } else if !events.isEmpty {
-                // イベントインジケーター（未完了がある場合のみ表示）
-                HStack(spacing: 2) {
-                    ForEach(events.prefix(3)) { event in
-                        Circle()
-                            .fill(event.isCompleted ? Color.green : Color.orange)
-                            .frame(width: 4, height: 4)
+                ZStack {
+                    // 輝きエフェクト
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 20))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.yellow, .orange, .pink],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .rotationEffect(.degrees(showCelebration ? 360 : 0))
+                        .scaleEffect(showCelebration ? 1.2 : 0.8)
+                        .opacity(showCelebration ? 0.8 : 0.4)
+                    
+                    // メインの星
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.yellow, .orange],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .shadow(color: .orange.opacity(0.5), radius: 8, x: 0, y: 2)
+                        .scaleEffect(showCelebration ? 1.1 : 1.0)
+                }
+                .onAppear {
+                    withAnimation(
+                        .easeInOut(duration: 1.0)
+                        .repeatForever(autoreverses: true)
+                    ) {
+                        showCelebration = true
                     }
                 }
+            } else if !events.isEmpty {
+                // イベントインジケーター（未完了がある場合）
+                HStack(spacing: 3) {
+                    ForEach(events.prefix(3)) { event in
+                        Circle()
+                            .fill(
+                                event.isCompleted ? 
+                                    LinearGradient(colors: [.green, .mint], startPoint: .top, endPoint: .bottom) :
+                                    LinearGradient(colors: [.orange, .pink], startPoint: .top, endPoint: .bottom)
+                            )
+                            .frame(width: 6, height: 6)
+                            .shadow(color: event.isCompleted ? .green.opacity(0.5) : .orange.opacity(0.5), radius: 2)
+                    }
+                }
+                .padding(.bottom, 4)
             }
 
             Spacer(minLength: 0)
@@ -207,12 +378,16 @@ struct DayCell: View {
         .frame(maxWidth: .infinity)
         .aspectRatio(1, contentMode: .fit)
         .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.gray.opacity(0.05))
+            RoundedRectangle(cornerRadius: 12)
+                .fill(cellGradient)
+                .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 3)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(
+                    LinearGradient(colors: [Color.gray.opacity(0.2)], startPoint: .top, endPoint: .bottom),
+                    lineWidth: 1
+                )
         )
     }
 }
