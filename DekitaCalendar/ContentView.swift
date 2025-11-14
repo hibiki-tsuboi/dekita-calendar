@@ -511,6 +511,8 @@ struct DayEventsView: View {
     @State private var editingTitle: String = ""
     @State private var isAddingNew = false
     @State private var newEventTitle = ""
+    @State private var showCongratulationsAlert = false
+    @State private var initialLoadComplete = false
     @FocusState private var focusedField: Field?
 
     enum Field: Hashable {
@@ -572,26 +574,6 @@ struct DayEventsView: View {
                                     .fill(.white)
                                     .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
                             )
-
-                        // 全部完了している場合のお祝いメッセージ
-                        if allEventsCompleted {
-                            HStack(spacing: 8) {
-                                Image(systemName: "star.fill")
-                                    .foregroundStyle(.yellow)
-                                Text("すべて完了！")
-                                    .font(.system(size: 16, weight: .bold, design: .rounded))
-                                    .foregroundColor(.orange)
-                                Image(systemName: "star.fill")
-                                    .foregroundStyle(.yellow)
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(
-                                Capsule()
-                                    .fill(.white)
-                                    .shadow(color: .orange.opacity(0.3), radius: 8)
-                            )
-                        }
                     }
                     .padding(.top)
 
@@ -668,9 +650,26 @@ struct DayEventsView: View {
             }
             .onAppear {
                 loadEvents()
+                // 少し遅延させて初期ロード完了をマーク
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    initialLoadComplete = true
+                }
             }
             .onChange(of: allEvents) {
                 loadEvents()
+            }
+            .onChange(of: allEventsCompleted) { oldValue, newValue in
+                // 初期ロード完了後のみアラートを表示
+                if initialLoadComplete && newValue && !oldValue && !events.isEmpty {
+                    showCongratulationsAlert = true
+                }
+            }
+            .alert("頑張ったね！", isPresented: $showCongratulationsAlert) {
+                Button("OK") {
+                    dismiss()
+                }
+            } message: {
+                Text("すべてのイベントが完了しました！")
             }
         }
     }
