@@ -412,11 +412,23 @@ struct DayEventsView: View {
         case editTitle(CalendarEvent)
     }
 
+    private var headerGradient: LinearGradient {
+        LinearGradient(
+            colors: [Color(red: 1.0, green: 0.6, blue: 0.8), Color(red: 0.6, green: 0.8, blue: 1.0)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
     private var dateString: String {
         let formatter = DateFormatter()
         formatter.dateStyle = .long
         formatter.locale = Locale(identifier: "ja_JP")
         return formatter.string(from: date)
+    }
+
+    private var allEventsCompleted: Bool {
+        !events.isEmpty && events.allSatisfy { $0.isCompleted }
     }
 
     private func loadEvents() {
@@ -429,136 +441,122 @@ struct DayEventsView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                // イベントリスト
-                Section {
-                    if events.isEmpty {
-                        Text("イベントがありません")
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                    } else {
-                        ForEach(events) { event in
-                            if editingEvent?.id == event.id {
-                                // 編集モード
-                                VStack(spacing: 8) {
-                                    HStack {
-                                        TextField("イベント名", text: $editingTitle)
-                                            .focused($focusedField, equals: .editTitle(event))
-                                            .textFieldStyle(.plain)
-                                            .font(.headline)
-                                        
-                                        Toggle("", isOn: Binding(
-                                            get: { event.isCompleted },
-                                            set: { newValue in
-                                                withAnimation {
-                                                    event.isCompleted = newValue
-                                                }
-                                            }
-                                        ))
-                                        .labelsHidden()
-                                    }
-                                    
-                                    HStack {
-                                        Button("キャンセル") {
-                                            withAnimation {
-                                                editingEvent = nil
-                                            }
-                                        }
-                                        .buttonStyle(.bordered)
-                                        
-                                        Spacer()
-                                        
-                                        Button("保存") {
-                                            saveEdit(event)
-                                        }
-                                        .buttonStyle(.borderedProminent)
-                                        .disabled(editingTitle.isEmpty)
-                                    }
-                                }
-                                .padding(.vertical, 4)
-                            } else {
-                                // 表示モード
-                                HStack {
-                                    Button(action: {
-                                        startEditing(event)
-                                    }) {
-                                        Text(event.title)
-                                            .font(.headline)
-                                            .foregroundColor(.primary)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                    }
-                                    .buttonStyle(.plain)
-                                    
-                                    Toggle("", isOn: Binding(
-                                        get: { event.isCompleted },
-                                        set: { newValue in
-                                            withAnimation {
-                                                event.isCompleted = newValue
-                                            }
-                                        }
-                                    ))
-                                    .labelsHidden()
-                                }
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button(role: .destructive) {
-                                        deleteEvent(event)
-                                    } label: {
-                                        Label("削除", systemImage: "trash")
-                                    }
-                                }
+            ZStack {
+                // ポップな背景
+                LinearGradient(
+                    colors: [
+                        Color(red: 1.0, green: 0.95, blue: 0.85),
+                        Color(red: 0.9, green: 0.95, blue: 1.0)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+
+                VStack(spacing: 20) {
+                    // ヘッダー
+                    VStack(spacing: 8) {
+                        Text(dateString)
+                            .font(.system(size: 22, weight: .heavy, design: .rounded))
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(.white)
+                                    .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+                            )
+
+                        // 全部完了している場合のお祝いメッセージ
+                        if allEventsCompleted {
+                            HStack(spacing: 8) {
+                                Image(systemName: "star.fill")
+                                    .foregroundStyle(.yellow)
+                                Text("すべて完了！")
+                                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                                    .foregroundColor(.orange)
+                                Image(systemName: "star.fill")
+                                    .foregroundStyle(.yellow)
                             }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(
+                                Capsule()
+                                    .fill(.white)
+                                    .shadow(color: .orange.opacity(0.3), radius: 8)
+                            )
                         }
                     }
-                }
-                
-                // 新規イベント追加セクション（インライン）
-                if isAddingNew {
-                    Section {
-                        VStack(spacing: 8) {
-                            TextField("イベント名", text: $newEventTitle)
-                                .focused($focusedField, equals: .newTitle)
-                                .textFieldStyle(.plain)
-                                .font(.headline)
-                            
-                            HStack {
-                                Button("キャンセル") {
-                                    withAnimation {
-                                        isAddingNew = false
-                                        newEventTitle = ""
+                    .padding(.top)
+
+                    // イベントリスト
+                    ScrollView {
+                        VStack(spacing: 12) {
+                            if events.isEmpty {
+                                VStack(spacing: 16) {
+                                    Image(systemName: "calendar.badge.plus")
+                                        .font(.system(size: 60))
+                                        .foregroundColor(.purple)
+
+                                    Text("まだイベントがありません")
+                                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                                        .foregroundColor(.black.opacity(0.6))
+
+                                    Text("右上の ＋ ボタンから追加しよう！")
+                                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                                        .foregroundColor(.black.opacity(0.5))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 60)
+                                .padding(.horizontal, 20)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 20)
+                                        .fill(.white.opacity(0.7))
+                                        .shadow(color: .black.opacity(0.05), radius: 8)
+                                )
+                            } else {
+                                ForEach(events) { event in
+                                    if editingEvent?.id == event.id {
+                                        // 編集モード
+                                        editingEventView(event)
+                                    } else {
+                                        // 表示モード
+                                        eventRow(event)
                                     }
                                 }
-                                .buttonStyle(.bordered)
-                                
-                                Spacer()
-                                
-                                Button("追加") {
-                                    addNewEvent()
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .disabled(newEventTitle.isEmpty)
+                            }
+
+                            // 新規イベント追加エリア
+                            if isAddingNew {
+                                newEventView
                             }
                         }
-                        .padding(.vertical, 4)
+                        .padding()
                     }
                 }
             }
-            .navigationTitle(dateString)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("閉じる") {
+                    Button {
                         dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundStyle(headerGradient)
                     }
                 }
-                
+
                 ToolbarItem(placement: .primaryAction) {
-                    Button(action: {
-                        withAnimation {
+                    Button {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                             isAddingNew = true
                             focusedField = .newTitle
                         }
-                    }) {
-                        Label("追加", systemImage: "plus")
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundStyle(headerGradient)
                     }
                 }
             }
@@ -569,6 +567,185 @@ struct DayEventsView: View {
                 loadEvents()
             }
         }
+    }
+
+    // MARK: - Subviews
+
+    private func eventRow(_ event: CalendarEvent) -> some View {
+        HStack(spacing: 12) {
+            // アイコン
+            Image(systemName: event.isCompleted ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 24))
+                .foregroundStyle(
+                    event.isCompleted ?
+                        LinearGradient(colors: [.green, .mint], startPoint: .top, endPoint: .bottom) :
+                        LinearGradient(colors: [.orange, .pink], startPoint: .top, endPoint: .bottom)
+                )
+
+            // イベント名
+            Button {
+                startEditing(event)
+            } label: {
+                Text(event.title)
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    .foregroundColor(.black)
+                    .strikethrough(event.isCompleted, color: .gray)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+
+            // トグル
+            Toggle("", isOn: Binding(
+                get: { event.isCompleted },
+                set: { newValue in
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        event.isCompleted = newValue
+                    }
+                }
+            ))
+            .labelsHidden()
+            .tint(.green)
+
+            // 削除ボタン
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    deleteEvent(event)
+                }
+            } label: {
+                Image(systemName: "trash.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(
+                        LinearGradient(colors: [.red, .pink], startPoint: .top, endPoint: .bottom)
+                    )
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.white)
+                .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+        )
+    }
+
+    private func editingEventView(_ event: CalendarEvent) -> some View {
+        VStack(spacing: 12) {
+            HStack {
+                Image(systemName: "pencil.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(headerGradient)
+
+                TextField("イベント名", text: $editingTitle)
+                    .focused($focusedField, equals: .editTitle(event))
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    .foregroundColor(.black)
+                    .padding(8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.gray.opacity(0.1))
+                    )
+            }
+
+            HStack(spacing: 12) {
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        editingEvent = nil
+                    }
+                } label: {
+                    Text("キャンセル")
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(
+                            LinearGradient(colors: [.gray, .gray.opacity(0.8)], startPoint: .top, endPoint: .bottom)
+                        )
+                        .clipShape(Capsule())
+                }
+
+                Button {
+                    saveEdit(event)
+                } label: {
+                    Text("保存")
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(headerGradient)
+                        .clipShape(Capsule())
+                        .shadow(color: .pink.opacity(0.3), radius: 4, x: 0, y: 2)
+                }
+                .disabled(editingTitle.isEmpty)
+                .opacity(editingTitle.isEmpty ? 0.5 : 1.0)
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.white)
+                .shadow(color: .blue.opacity(0.2), radius: 12, x: 0, y: 4)
+        )
+    }
+
+    private var newEventView: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(headerGradient)
+
+                TextField("新しいイベント", text: $newEventTitle)
+                    .focused($focusedField, equals: .newTitle)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    .foregroundColor(.black)
+                    .padding(8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.gray.opacity(0.1))
+                    )
+            }
+
+            HStack(spacing: 12) {
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        isAddingNew = false
+                        newEventTitle = ""
+                    }
+                } label: {
+                    Text("キャンセル")
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(
+                            LinearGradient(colors: [.gray, .gray.opacity(0.8)], startPoint: .top, endPoint: .bottom)
+                        )
+                        .clipShape(Capsule())
+                }
+
+                Button {
+                    addNewEvent()
+                } label: {
+                    Text("追加")
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(headerGradient)
+                        .clipShape(Capsule())
+                        .shadow(color: .pink.opacity(0.3), radius: 4, x: 0, y: 2)
+                }
+                .disabled(newEventTitle.isEmpty)
+                .opacity(newEventTitle.isEmpty ? 0.5 : 1.0)
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.white)
+                .shadow(color: .purple.opacity(0.2), radius: 12, x: 0, y: 4)
+        )
     }
 
     private func addNewEvent() {
