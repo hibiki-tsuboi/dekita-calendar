@@ -14,6 +14,8 @@ struct ContentView: View {
     @State private var currentMonth = Date()
     @State private var selectedDate: Date?
     @State private var bounceAnimation = false
+    @State private var dragOffset: CGFloat = 0
+    @State private var isDragging = false
 
     private let calendar = Calendar.current
     private let daysOfWeek = ["日", "月", "火", "水", "木", "金", "土"]
@@ -81,13 +83,6 @@ struct ContentView: View {
 
     private var monthHeader: some View {
         HStack(spacing: 20) {
-            Button(action: previousMonth) {
-                Image(systemName: "arrow.left.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundStyle(headerGradient)
-                    .shadow(color: .purple.opacity(0.3), radius: 4, x: 0, y: 2)
-            }
-
             Spacer()
 
             Text(currentMonthString)
@@ -96,8 +91,10 @@ struct ContentView: View {
 
             Spacer()
 
-            Button(action: nextMonth) {
-                Image(systemName: "arrow.right.circle.fill")
+            Button {
+                goToCurrentMonth()
+            } label: {
+                Image(systemName: "calendar.circle.fill")
                     .font(.system(size: 32))
                     .foregroundStyle(headerGradient)
                     .shadow(color: .purple.opacity(0.3), radius: 4, x: 0, y: 2)
@@ -180,6 +177,51 @@ struct ContentView: View {
                 .shadow(color: .black.opacity(0.05), radius: 10)
         )
         .padding(.horizontal)
+        .offset(x: dragOffset)
+        .gesture(
+            DragGesture()
+                .onChanged { value in
+                    isDragging = true
+                    dragOffset = value.translation.width
+                }
+                .onEnded { value in
+                    isDragging = false
+                    let threshold: CGFloat = 50
+
+                    if value.translation.width > threshold {
+                        // 右スワイプ: 前の月へ
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            dragOffset = UIScreen.main.bounds.width
+                        }
+
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                            previousMonth()
+                            dragOffset = -UIScreen.main.bounds.width
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                dragOffset = 0
+                            }
+                        }
+                    } else if value.translation.width < -threshold {
+                        // 左スワイプ: 次の月へ
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            dragOffset = -UIScreen.main.bounds.width
+                        }
+
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                            nextMonth()
+                            dragOffset = UIScreen.main.bounds.width
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                dragOffset = 0
+                            }
+                        }
+                    } else {
+                        // スワイプ距離が足りない: 元に戻す
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            dragOffset = 0
+                        }
+                    }
+                }
+        )
     }
 
     // MARK: - Helper Methods
@@ -210,15 +252,79 @@ struct ContentView: View {
 
     private func previousMonth() {
         guard let newMonth = calendar.date(byAdding: .month, value: -1, to: currentMonth) else { return }
-        withAnimation {
-            currentMonth = newMonth
-        }
+        currentMonth = newMonth
     }
 
     private func nextMonth() {
         guard let newMonth = calendar.date(byAdding: .month, value: 1, to: currentMonth) else { return }
-        withAnimation {
-            currentMonth = newMonth
+        currentMonth = newMonth
+    }
+
+    private func animatedPreviousMonth() {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            dragOffset = UIScreen.main.bounds.width
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            previousMonth()
+            dragOffset = -UIScreen.main.bounds.width
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                dragOffset = 0
+            }
+        }
+    }
+
+    private func animatedNextMonth() {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            dragOffset = -UIScreen.main.bounds.width
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            nextMonth()
+            dragOffset = UIScreen.main.bounds.width
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                dragOffset = 0
+            }
+        }
+    }
+
+    private func goToCurrentMonth() {
+        let today = Date()
+
+        // すでに現在の月を表示している場合は何もしない
+        if calendar.isDate(currentMonth, equalTo: today, toGranularity: .month) {
+            return
+        }
+
+        // 現在表示している月と今日の月を比較
+        let isCurrentAfterToday = currentMonth > today
+
+        if isCurrentAfterToday {
+            // 現在の月が今日より未来 → 右スワイプアニメーション
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                dragOffset = UIScreen.main.bounds.width
+            }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                currentMonth = today
+                dragOffset = -UIScreen.main.bounds.width
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    dragOffset = 0
+                }
+            }
+        } else {
+            // 現在の月が今日より過去 → 左スワイプアニメーション
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                dragOffset = -UIScreen.main.bounds.width
+            }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                currentMonth = today
+                dragOffset = UIScreen.main.bounds.width
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    dragOffset = 0
+                }
+            }
         }
     }
 }
