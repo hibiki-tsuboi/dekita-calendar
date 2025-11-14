@@ -664,12 +664,13 @@ struct DayEventsView: View {
                     showCongratulationsAlert = true
                 }
             }
-            .alert("頑張ったね！", isPresented: $showCongratulationsAlert) {
-                Button("OK") {
-                    dismiss()
+            .overlay {
+                if showCongratulationsAlert {
+                    CongratulationsView {
+                        showCongratulationsAlert = false
+                        dismiss()
+                    }
                 }
-            } message: {
-                Text("すべてのイベントが完了しました！")
             }
         }
     }
@@ -870,6 +871,131 @@ struct DayEventsView: View {
     private func deleteEvent(_ event: CalendarEvent) {
         withAnimation {
             modelContext.delete(event)
+        }
+    }
+}
+
+// MARK: - Congratulations View
+
+struct CongratulationsView: View {
+    let onDismiss: () -> Void
+    @State private var scale: CGFloat = 0.5
+    @State private var opacity: Double = 0
+    @State private var rotation: Double = 0
+
+    var body: some View {
+        ZStack {
+            // 半透明の背景
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    dismissWithAnimation()
+                }
+
+            // メインのカード
+            VStack(spacing: 24) {
+                // 星のアニメーション
+                ZStack {
+                    // 外側の輝き
+                    ForEach(0..<8) { index in
+                        Image(systemName: "sparkle")
+                            .font(.system(size: 20))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [.yellow, .orange, .pink],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .rotationEffect(.degrees(Double(index) * 45 + rotation))
+                            .offset(x: 40 * cos(Double(index) * .pi / 4), y: 40 * sin(Double(index) * .pi / 4))
+                            .opacity(0.6)
+                    }
+
+                    // メインの星
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 80, weight: .bold))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.yellow, .orange],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .shadow(color: .orange.opacity(0.5), radius: 10, x: 0, y: 4)
+                        .scaleEffect(scale)
+                }
+                .frame(height: 120)
+
+                // メッセージ
+                VStack(spacing: 12) {
+                    Text("頑張ったね！")
+                        .font(.system(size: 32, weight: .heavy, design: .rounded))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color(red: 1.0, green: 0.6, blue: 0.8), Color(red: 0.6, green: 0.8, blue: 1.0)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+
+                    Text("すべてのイベントが完了しました！")
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .foregroundColor(.black.opacity(0.7))
+                        .multilineTextAlignment(.center)
+                }
+
+                // OKボタン
+                Button {
+                    dismissWithAnimation()
+                } label: {
+                    Text("OK")
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            LinearGradient(
+                                colors: [Color(red: 1.0, green: 0.6, blue: 0.8), Color(red: 0.6, green: 0.8, blue: 1.0)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .clipShape(Capsule())
+                        .shadow(color: .pink.opacity(0.4), radius: 8, x: 0, y: 4)
+                }
+                .padding(.horizontal, 32)
+            }
+            .padding(32)
+            .background(
+                RoundedRectangle(cornerRadius: 32)
+                    .fill(.white)
+                    .shadow(color: .black.opacity(0.2), radius: 20, x: 0, y: 10)
+            )
+            .padding(.horizontal, 40)
+            .scaleEffect(scale)
+            .opacity(opacity)
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                scale = 1.0
+                opacity = 1.0
+            }
+
+            withAnimation(.linear(duration: 3.0).repeatForever(autoreverses: false)) {
+                rotation = 360
+            }
+        }
+    }
+
+    private func dismissWithAnimation() {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+            scale = 0.8
+            opacity = 0
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            onDismiss()
         }
     }
 }
