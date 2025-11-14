@@ -168,6 +168,10 @@ struct DayCell: View {
         return formatter.string(from: date)
     }
 
+    private var allEventsCompleted: Bool {
+        !events.isEmpty && events.allSatisfy { $0.isCompleted }
+    }
+
     var body: some View {
         VStack(spacing: 4) {
             Text(dayNumber)
@@ -180,8 +184,14 @@ struct DayCell: View {
                         .fill(isToday ? Color.blue.opacity(0.2) : Color.clear)
                 )
 
-            // イベントインジケーター
-            if !events.isEmpty {
+            // 全てのイベントが完了したら大きな星マークを表示
+            if allEventsCompleted {
+                Image(systemName: "star.fill")
+                    .font(.system(size: 40))
+                    .foregroundColor(.yellow)
+                    .shadow(color: .orange, radius: 3)
+            } else if !events.isEmpty {
+                // イベントインジケーター（未完了がある場合のみ表示）
                 HStack(spacing: 2) {
                     ForEach(events.prefix(3)) { event in
                         Circle()
