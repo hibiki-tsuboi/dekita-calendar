@@ -13,7 +13,6 @@ struct ContentView: View {
     @Query private var events: [CalendarEvent]
     @State private var currentMonth = Date()
     @State private var selectedDate: Date?
-    @State private var showingDayEvents = false
 
     private let calendar = Calendar.current
     private let daysOfWeek = ["日", "月", "火", "水", "木", "金", "土"]
@@ -40,7 +39,10 @@ struct ContentView: View {
                 Spacer()
             }
             .navigationTitle("できたカレンダー")
-            .sheet(isPresented: $showingDayEvents) {
+            .sheet(isPresented: Binding<Bool>(
+                get: { selectedDate != nil },
+                set: { if !$0 { selectedDate = nil } }
+            )) {
                 if let date = selectedDate {
                     DayEventsView(date: date)
                 }
@@ -102,7 +104,6 @@ struct ContentView: View {
                     )
                     .onTapGesture {
                         selectedDate = date
-                        showingDayEvents = true
                     }
                 } else {
                     Color.clear
