@@ -27,7 +27,7 @@ struct DekitaCalendarApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView().preferredColorScheme(.light)
         }
         .modelContainer(sharedModelContainer)
     }
