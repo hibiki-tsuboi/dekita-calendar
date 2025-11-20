@@ -437,7 +437,7 @@ struct DayCell: View {
                         )
                 )
 
-            // 全てのイベントが完了したら超大きなキラキラ星を表示
+            // 全てのやることが完了したら超大きなキラキラ星を表示
             if allEventsCompleted {
                 ZStack {
                     // 輝きエフェクト
@@ -476,7 +476,7 @@ struct DayCell: View {
                     }
                 }
             } else if !events.isEmpty {
-                // イベントインジケーター（未完了がある場合）
+                // やることインジケーター（未完了がある場合）
                 HStack(spacing: 3) {
                     ForEach(events.prefix(3)) { event in
                         Circle()
@@ -591,7 +591,7 @@ struct DayEventsView: View {
                     }
                     .padding(.top)
 
-                    // イベントリスト
+                    // やることリスト
                     ScrollView {
                         VStack(spacing: 12) {
                             // よく使う項目選択エリア
@@ -605,7 +605,7 @@ struct DayEventsView: View {
                                         .font(.system(size: 60))
                                         .foregroundColor(.purple)
 
-                                    Text("まだイベントがありません")
+                                    Text("まだやることがありません")
                                         .font(.system(size: 18, weight: .semibold, design: .rounded))
                                         .foregroundColor(.black.opacity(0.6))
 
@@ -633,7 +633,7 @@ struct DayEventsView: View {
                                 }
                             }
 
-                            // 新規イベント追加エリア
+                            // 新規やること追加エリア
                             if isAddingNew {
                                 newEventView
                             }
@@ -752,7 +752,7 @@ struct DayEventsView: View {
 
     private func eventRow(_ event: CalendarEvent) -> some View {
         HStack(spacing: 12) {
-            // イベント名
+            // やること名
             Button {
                 startEditing(event)
             } label: {
@@ -803,7 +803,7 @@ struct DayEventsView: View {
                     .font(.system(size: 24))
                     .foregroundStyle(headerGradient)
 
-                TextField("イベント名", text: $editingTitle)
+                TextField("やること名", text: $editingTitle)
                     .focused($focusedField, equals: .editTitle(event))
                     .textFieldStyle(.plain)
                     .font(.system(size: 18, weight: .semibold, design: .rounded))
@@ -863,7 +863,7 @@ struct DayEventsView: View {
                     .font(.system(size: 24))
                     .foregroundStyle(headerGradient)
 
-                TextField("新しいイベント", text: $newEventTitle)
+                TextField("新しいやること", text: $newEventTitle)
                     .focused($focusedField, equals: .newTitle)
                     .textFieldStyle(.plain)
                     .font(.system(size: 18, weight: .semibold, design: .rounded))
@@ -1033,7 +1033,7 @@ struct CongratulationsView: View {
                             )
                         )
 
-                    Text("すべてのイベントが完了しました！")
+                    Text("すべてのやることが完了しました！")
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
                         .foregroundColor(.black.opacity(0.7))
                         .multilineTextAlignment(.center)
