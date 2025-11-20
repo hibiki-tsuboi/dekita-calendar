@@ -50,7 +50,7 @@ struct TemplateManagementView: View {
 
                 VStack(spacing: 20) {
                     // ヘッダー
-                    Text("イベントテンプレート")
+                    Text("よく使う項目")
                         .font(.system(size: 22, weight: .heavy, design: .rounded))
                         .foregroundColor(.black)
                         .padding(.horizontal, 20)
@@ -62,7 +62,7 @@ struct TemplateManagementView: View {
                         )
                         .padding(.top)
 
-                    // テンプレートリスト
+                    // よく使う項目リスト
                     ScrollView {
                         VStack(spacing: 12) {
                             if templates.isEmpty {
@@ -122,7 +122,7 @@ struct TemplateManagementView: View {
                 .font(.system(size: 60))
                 .foregroundColor(.purple)
 
-            Text("テンプレートがありません")
+            Text("よく使う項目がありません")
                 .font(.system(size: 18, weight: .semibold, design: .rounded))
                 .foregroundColor(.black.opacity(0.6))
 
@@ -277,7 +277,7 @@ struct TemplateManagementView: View {
                     .font(.system(size: 24))
                     .foregroundStyle(headerGradient)
 
-                TextField("新しいテンプレート", text: $newTitle)
+                TextField("新しい項目", text: $newTitle)
                     .focused($focusedField, equals: .newTitle)
                     .textFieldStyle(.plain)
                     .font(.system(size: 18, weight: .semibold, design: .rounded))

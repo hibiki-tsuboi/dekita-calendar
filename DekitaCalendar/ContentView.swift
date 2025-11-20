@@ -594,7 +594,7 @@ struct DayEventsView: View {
                     // イベントリスト
                     ScrollView {
                         VStack(spacing: 12) {
-                            // テンプレート選択エリア
+                            // よく使う項目選択エリア
                             if !templates.isEmpty {
                                 templateSelectionView
                             }
@@ -698,7 +698,7 @@ struct DayEventsView: View {
 
     private var templateSelectionView: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("テンプレートから選択")
+            Text("よく使う項目から選択")
                 .font(.system(size: 16, weight: .bold, design: .rounded))
                 .foregroundColor(.black.opacity(0.7))
 
@@ -952,7 +952,7 @@ struct DayEventsView: View {
         withAnimation {
             modelContext.insert(event)
 
-            // テンプレートの使用回数と最終使用日を更新
+            // よく使う項目の使用回数と最終使用日を更新
             template.usageCount += 1
             template.lastUsedAt = Date()
         }
