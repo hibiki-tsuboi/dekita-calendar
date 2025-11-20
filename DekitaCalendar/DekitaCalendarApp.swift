@@ -15,6 +15,7 @@ struct DekitaCalendarApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             CalendarEvent.self,
+            EventTemplate.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

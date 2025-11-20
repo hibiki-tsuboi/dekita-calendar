@@ -16,6 +16,7 @@ struct ContentView: View {
     @State private var bounceAnimation = false
     @State private var dragOffset: CGFloat = 0
     @State private var isDragging = false
+    @State private var showTemplateManagement = false
 
     private let calendar = Calendar.current
     private let daysOfWeek = ["日", "月", "火", "水", "木", "金", "土"]
@@ -75,6 +76,9 @@ struct ContentView: View {
                     DayEventsView(date: date)
                 }
             }
+            .sheet(isPresented: $showTemplateManagement) {
+                TemplateManagementView()
+            }
         }
         .persistentSystemOverlays(.hidden)
     }
@@ -83,6 +87,15 @@ struct ContentView: View {
 
     private var monthHeader: some View {
         HStack(spacing: 20) {
+            Button {
+                showTemplateManagement = true
+            } label: {
+                Image(systemName: "list.bullet.circle.fill")
+                    .font(.system(size: 32))
+                    .foregroundStyle(headerGradient)
+                    .shadow(color: .purple.opacity(0.3), radius: 4, x: 0, y: 2)
+            }
+
             Spacer()
 
             Text(currentMonthString)
@@ -504,6 +517,7 @@ struct DayEventsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Query private var allEvents: [CalendarEvent]
+    @Query(sort: \EventTemplate.usageCount, order: .reverse) private var templates: [EventTemplate]
 
     let date: Date
     @State private var events: [CalendarEvent] = []
@@ -580,6 +594,11 @@ struct DayEventsView: View {
                     // イベントリスト
                     ScrollView {
                         VStack(spacing: 12) {
+                            // テンプレート選択エリア
+                            if !templates.isEmpty {
+                                templateSelectionView
+                            }
+
                             if events.isEmpty {
                                 VStack(spacing: 16) {
                                     Image(systemName: "calendar.badge.plus")
@@ -676,6 +695,68 @@ struct DayEventsView: View {
     }
 
     // MARK: - Subviews
+
+    private var templateSelectionView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("テンプレートから選択")
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundColor(.black.opacity(0.7))
+
+                Spacer()
+
+                Image(systemName: "sparkles")
+                    .font(.system(size: 14))
+                    .foregroundColor(.orange)
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(templates) { template in
+                        Button {
+                            addEventFromTemplate(template)
+                        } label: {
+                            HStack(spacing: 8) {
+                                Text(template.emoji)
+                                    .font(.system(size: 20))
+
+                                Text(template.title)
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.white)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .background(
+                                LinearGradient(
+                                    colors: [
+                                        Color(hex: template.colorHex),
+                                        Color(hex: template.colorHex).opacity(0.8)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .clipShape(Capsule())
+                            .shadow(color: Color(hex: template.colorHex).opacity(0.3), radius: 4, x: 0, y: 2)
+                        }
+                        .buttonStyle(TemplateButtonStyle())
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.white, Color(red: 1.0, green: 0.98, blue: 0.9)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .shadow(color: .orange.opacity(0.15), radius: 10, x: 0, y: 4)
+        )
+    }
 
     private func eventRow(_ event: CalendarEvent) -> some View {
         HStack(spacing: 12) {
@@ -872,6 +953,27 @@ struct DayEventsView: View {
         withAnimation {
             modelContext.delete(event)
         }
+    }
+
+    private func addEventFromTemplate(_ template: EventTemplate) {
+        let event = CalendarEvent(title: template.title, date: date, notes: "")
+        withAnimation {
+            modelContext.insert(event)
+
+            // テンプレートの使用回数と最終使用日を更新
+            template.usageCount += 1
+            template.lastUsedAt = Date()
+        }
+    }
+}
+
+// MARK: - Template Button Style
+
+struct TemplateButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .animation(.spring(response: 0.2, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }
 
