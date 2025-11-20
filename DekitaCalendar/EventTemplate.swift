@@ -12,15 +12,13 @@ import SwiftData
 final class EventTemplate {
     var title: String
     var emoji: String
-    var colorHex: String
     var createdAt: Date
     var lastUsedAt: Date?
     var usageCount: Int
 
-    init(title: String, emoji: String = "📝", colorHex: String = "FF6B9D") {
+    init(title: String, emoji: String = "📝") {
         self.title = title
         self.emoji = emoji
-        self.colorHex = colorHex
         self.createdAt = Date()
         self.lastUsedAt = nil
         self.usageCount = 0

@@ -17,10 +17,8 @@ struct TemplateManagementView: View {
     @State private var editingTemplate: EventTemplate?
     @State private var newTitle = ""
     @State private var newEmoji = "📝"
-    @State private var newColor = "FF6B9D"
     @State private var editTitle = ""
     @State private var editEmoji = ""
-    @State private var editColor = ""
     @FocusState private var focusedField: Field?
 
     enum Field: Hashable {
@@ -33,17 +31,6 @@ struct TemplateManagementView: View {
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
-
-    private let colorOptions = [
-        ("FF6B9D", "ピンク"),
-        ("FFB347", "オレンジ"),
-        ("FFD93D", "イエロー"),
-        ("6BCF7F", "グリーン"),
-        ("6BCBFF", "ブルー"),
-        ("A78BFA", "パープル"),
-        ("FF6B6B", "レッド"),
-        ("95E1D3", "ミント")
-    ]
 
     private let emojiOptions = ["📝", "📚", "✏️", "🎨", "🎯", "⚡", "🌟", "🎵", "🏃", "💪", "🧠", "❤️"]
 
@@ -170,16 +157,6 @@ struct TemplateManagementView: View {
             }
             .buttonStyle(.plain)
 
-            // カラーインジケーター
-            Circle()
-                .fill(Color(hex: template.colorHex))
-                .frame(width: 24, height: 24)
-                .overlay(
-                    Circle()
-                        .strokeBorder(Color.white, lineWidth: 2)
-                )
-                .shadow(color: .black.opacity(0.1), radius: 2)
-
             // 削除ボタン
             Button {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
@@ -244,38 +221,6 @@ struct TemplateManagementView: View {
                                         RoundedRectangle(cornerRadius: 12)
                                             .strokeBorder(editEmoji == emoji ? Color.blue : Color.clear, lineWidth: 2)
                                     )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // カラー選択
-            VStack(alignment: .leading, spacing: 8) {
-                Text("カラー")
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    .foregroundColor(.black.opacity(0.6))
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(colorOptions, id: \.0) { hex, name in
-                            Button {
-                                editColor = hex
-                            } label: {
-                                VStack(spacing: 4) {
-                                    Circle()
-                                        .fill(Color(hex: hex))
-                                        .frame(width: 32, height: 32)
-                                        .overlay(
-                                            Circle()
-                                                .strokeBorder(editColor == hex ? Color.black : Color.clear, lineWidth: 2)
-                                        )
-
-                                    Text(name)
-                                        .font(.system(size: 10, weight: .medium, design: .rounded))
-                                        .foregroundColor(.black.opacity(0.6))
-                                }
-                                .frame(width: 60)
                             }
                         }
                     }
@@ -373,38 +318,6 @@ struct TemplateManagementView: View {
                 }
             }
 
-            // カラー選択
-            VStack(alignment: .leading, spacing: 8) {
-                Text("カラー")
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    .foregroundColor(.black.opacity(0.6))
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(colorOptions, id: \.0) { hex, name in
-                            Button {
-                                newColor = hex
-                            } label: {
-                                VStack(spacing: 4) {
-                                    Circle()
-                                        .fill(Color(hex: hex))
-                                        .frame(width: 32, height: 32)
-                                        .overlay(
-                                            Circle()
-                                                .strokeBorder(newColor == hex ? Color.black : Color.clear, lineWidth: 2)
-                                        )
-
-                                    Text(name)
-                                        .font(.system(size: 10, weight: .medium, design: .rounded))
-                                        .foregroundColor(.black.opacity(0.6))
-                                }
-                                .frame(width: 60)
-                            }
-                        }
-                    }
-                }
-            }
-
             // ボタン
             HStack(spacing: 12) {
                 Button {
@@ -451,7 +364,7 @@ struct TemplateManagementView: View {
     // MARK: - Helper Methods
 
     private func addNewTemplate() {
-        let template = EventTemplate(title: newTitle, emoji: newEmoji, colorHex: newColor)
+        let template = EventTemplate(title: newTitle, emoji: newEmoji)
         withAnimation {
             modelContext.insert(template)
             isAddingNew = false
@@ -464,7 +377,6 @@ struct TemplateManagementView: View {
             editingTemplate = template
             editTitle = template.title
             editEmoji = template.emoji
-            editColor = template.colorHex
             focusedField = .editTitle
         }
     }
@@ -473,7 +385,6 @@ struct TemplateManagementView: View {
         withAnimation {
             template.title = editTitle
             template.emoji = editEmoji
-            template.colorHex = editColor
             editingTemplate = nil
         }
     }
@@ -487,36 +398,6 @@ struct TemplateManagementView: View {
     private func resetNewTemplateFields() {
         newTitle = ""
         newEmoji = "📝"
-        newColor = "FF6B9D"
-    }
-}
-
-// MARK: - Color Extension
-
-extension Color {
-    init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
-        let a, r, g, b: UInt64
-        switch hex.count {
-        case 3: // RGB (12-bit)
-            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
-        case 6: // RGB (24-bit)
-            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
-        case 8: // ARGB (32-bit)
-            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
-        default:
-            (a, r, g, b) = (255, 0, 0, 0)
-        }
-
-        self.init(
-            .sRGB,
-            red: Double(r) / 255,
-            green: Double(g) / 255,
-            blue: Double(b) / 255,
-            opacity: Double(a) / 255
-        )
     }
 }
 

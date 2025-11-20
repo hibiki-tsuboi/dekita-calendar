@@ -698,17 +698,9 @@ struct DayEventsView: View {
 
     private var templateSelectionView: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("テンプレートから選択")
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .foregroundColor(.black.opacity(0.7))
-
-                Spacer()
-
-                Image(systemName: "sparkles")
-                    .font(.system(size: 14))
-                    .foregroundColor(.orange)
-            }
+            Text("テンプレートから選択")
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundColor(.black.opacity(0.7))
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
@@ -729,15 +721,15 @@ struct DayEventsView: View {
                             .background(
                                 LinearGradient(
                                     colors: [
-                                        Color(hex: template.colorHex),
-                                        Color(hex: template.colorHex).opacity(0.8)
+                                        Color(red: 1.0, green: 0.6, blue: 0.8),
+                                        Color(red: 0.6, green: 0.8, blue: 1.0)
                                     ],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
                             )
                             .clipShape(Capsule())
-                            .shadow(color: Color(hex: template.colorHex).opacity(0.3), radius: 4, x: 0, y: 2)
+                            .shadow(color: .pink.opacity(0.3), radius: 4, x: 0, y: 2)
                         }
                         .buttonStyle(TemplateButtonStyle())
                     }
