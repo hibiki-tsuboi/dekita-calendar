@@ -36,27 +36,15 @@ struct ContentView: View {
     }
 
     private var starDaysCount: Int {
-        // 現在の月の日付範囲を取得
-        guard let monthInterval = calendar.dateInterval(of: .month, for: currentMonth) else {
-            return 0
+        // すべてのイベントを日付ごとにグループ化
+        let groupedEvents = Dictionary(grouping: events) { event in
+            calendar.startOfDay(for: event.date)
         }
 
-        var count = 0
-        var date = monthInterval.start
-
-        // 月の各日をチェック
-        while date < monthInterval.end {
-            let dayEvents = eventsForDate(date)
-            // イベントがあり、すべて完了している日をカウント
-            if !dayEvents.isEmpty && dayEvents.allSatisfy({ $0.isCompleted }) {
-                count += 1
-            }
-
-            guard let nextDate = calendar.date(byAdding: .day, value: 1, to: date) else {
-                break
-            }
-            date = nextDate
-        }
+        // すべてのイベントが完了している日をカウント
+        let count = groupedEvents.values.filter { dayEvents in
+            !dayEvents.isEmpty && dayEvents.allSatisfy { $0.isCompleted }
+        }.count
 
         return count
     }
