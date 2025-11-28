@@ -35,6 +35,32 @@ struct ContentView: View {
         return formatter.string(from: currentMonth)
     }
 
+    private var starDaysCount: Int {
+        // 現在の月の日付範囲を取得
+        guard let monthInterval = calendar.dateInterval(of: .month, for: currentMonth) else {
+            return 0
+        }
+
+        var count = 0
+        var date = monthInterval.start
+
+        // 月の各日をチェック
+        while date < monthInterval.end {
+            let dayEvents = eventsForDate(date)
+            // イベントがあり、すべて完了している日をカウント
+            if !dayEvents.isEmpty && dayEvents.allSatisfy({ $0.isCompleted }) {
+                count += 1
+            }
+
+            guard let nextDate = calendar.date(byAdding: .day, value: 1, to: date) else {
+                break
+            }
+            date = nextDate
+        }
+
+        return count
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -98,9 +124,27 @@ struct ContentView: View {
 
             Spacer()
 
-            Text(currentMonthString)
-                .font(.system(size: 28, weight: .heavy, design: .rounded))
-                .foregroundStyle(headerGradient)
+            HStack(spacing: 8) {
+                Text(currentMonthString)
+                    .font(.system(size: 28, weight: .heavy, design: .rounded))
+                    .foregroundStyle(headerGradient)
+
+                HStack(spacing: 4) {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.yellow, .orange],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+
+                    Text("×\(starDaysCount)")
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundColor(.black.opacity(0.7))
+                }
+            }
 
             Spacer()
 
