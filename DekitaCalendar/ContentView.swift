@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import UIKit
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
@@ -17,6 +18,16 @@ struct ContentView: View {
     @State private var dragOffset: CGFloat = 0
     @State private var isDragging = false
     @State private var showTemplateManagement = false
+
+    // MARK: - Screen Width Helper
+    private var currentScreenWidth: CGFloat {
+        guard let windowScene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene else {
+            // Fallback for previews or when the scene is not active.
+            // Using a common iPhone width as a default.
+            return 390
+        }
+        return windowScene.screen.bounds.width
+    }
 
     private let calendar = Calendar.current
     private let daysOfWeek = ["日", "月", "火", "水", "木", "金", "土"]
@@ -236,12 +247,12 @@ struct ContentView: View {
                     if value.translation.width > threshold {
                         // 右スワイプ: 前の月へ
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            dragOffset = UIScreen.main.bounds.width
+                            dragOffset = currentScreenWidth
                         }
 
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                             previousMonth()
-                            dragOffset = -UIScreen.main.bounds.width
+                            dragOffset = -currentScreenWidth
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                 dragOffset = 0
                             }
@@ -249,12 +260,12 @@ struct ContentView: View {
                     } else if value.translation.width < -threshold {
                         // 左スワイプ: 次の月へ
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            dragOffset = -UIScreen.main.bounds.width
+                            dragOffset = -currentScreenWidth
                         }
 
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                             nextMonth()
-                            dragOffset = UIScreen.main.bounds.width
+                            dragOffset = currentScreenWidth
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                 dragOffset = 0
                             }
@@ -307,12 +318,12 @@ struct ContentView: View {
 
     private func animatedPreviousMonth() {
         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-            dragOffset = UIScreen.main.bounds.width
+            dragOffset = currentScreenWidth
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             previousMonth()
-            dragOffset = -UIScreen.main.bounds.width
+            dragOffset = -currentScreenWidth
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                 dragOffset = 0
             }
@@ -321,12 +332,12 @@ struct ContentView: View {
 
     private func animatedNextMonth() {
         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-            dragOffset = -UIScreen.main.bounds.width
+            dragOffset = -currentScreenWidth
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             nextMonth()
-            dragOffset = UIScreen.main.bounds.width
+            dragOffset = currentScreenWidth
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                 dragOffset = 0
             }
@@ -347,12 +358,12 @@ struct ContentView: View {
         if isCurrentAfterToday {
             // 現在の月が今日より未来 → 右スワイプアニメーション
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                dragOffset = UIScreen.main.bounds.width
+                dragOffset = currentScreenWidth
             }
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 currentMonth = today
-                dragOffset = -UIScreen.main.bounds.width
+                dragOffset = -currentScreenWidth
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                     dragOffset = 0
                 }
@@ -360,12 +371,12 @@ struct ContentView: View {
         } else {
             // 現在の月が今日より過去 → 左スワイプアニメーション
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                dragOffset = -UIScreen.main.bounds.width
+                dragOffset = -currentScreenWidth
             }
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 currentMonth = today
-                dragOffset = UIScreen.main.bounds.width
+                dragOffset = currentScreenWidth
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                     dragOffset = 0
                 }
