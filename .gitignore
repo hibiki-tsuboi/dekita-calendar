@@ -33,7 +33,7 @@ playground.xcworkspace
 
 # CocoaPods
 #
-# We recommend against adding the Pods directory to your .gitignore. However
+# We recommend against adding the Pods directory to the .gitignore. However
 # you should judge for yourself, the pros and cons are mentioned at:
 # https://guides.cocoapods.org/using/using-cocoapods.html#should-i-check-the-pods-directory-into-source-control
 #
@@ -68,3 +68,5 @@ fastlane/test_output
 .idea/
 .vscode/
 .claude/
+
+GEMINI.md
