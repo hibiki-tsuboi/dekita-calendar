@@ -433,19 +433,15 @@ struct DayCell: View {
         if !isCurrentMonth {
             return LinearGradient(colors: [.gray.opacity(0.3)], startPoint: .top, endPoint: .bottom)
         }
-        
-        if isToday {
-            return LinearGradient(colors: [.orange, .red], startPoint: .top, endPoint: .bottom)
-        }
-        
+
         if isSunday {
             return LinearGradient(colors: [.red], startPoint: .top, endPoint: .bottom)
         }
-        
+
         if isSaturday {
             return LinearGradient(colors: [.blue], startPoint: .top, endPoint: .bottom)
         }
-        
+
         return LinearGradient(colors: [.black], startPoint: .top, endPoint: .bottom)
     }
     
@@ -468,17 +464,9 @@ struct DayCell: View {
     var body: some View {
         VStack(spacing: 4) {
             Text(dayNumber)
-                .font(.system(size: 18, weight: isToday ? .black : .bold, design: .rounded))
+                .font(.system(size: 18, weight: .bold, design: .rounded))
                 .foregroundStyle(dayNumberColor)
                 .frame(width: 32, height: 32)
-                .background(
-                    Circle()
-                        .fill(isToday ? Color.yellow.opacity(0.3) : Color.clear)
-                        .overlay(
-                            Circle()
-                                .stroke(isToday ? Color.orange : Color.clear, lineWidth: 2)
-                        )
-                )
 
             // 全てのやることが完了したら超大きなキラキラ星を表示
             if allEventsCompleted {
