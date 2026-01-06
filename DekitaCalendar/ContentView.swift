@@ -607,21 +607,6 @@ struct DayEventsView: View {
                 .ignoresSafeArea()
 
                 VStack(spacing: 20) {
-                    // ヘッダー
-                    VStack(spacing: 8) {
-                        Text(dateString)
-                            .font(.system(size: 22, weight: .heavy, design: .rounded))
-                            .foregroundColor(.black)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(.white)
-                                    .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
-                            )
-                    }
-                    .padding(.top)
-
                     // やることリスト
                     ScrollView {
                         VStack(spacing: 12) {
@@ -683,6 +668,19 @@ struct DayEventsView: View {
                             .font(.system(size: 28))
                             .foregroundStyle(headerGradient)
                     }
+                }
+
+                ToolbarItem(placement: .principal) {
+                    Text(dateString)
+                        .font(.system(size: 20, weight: .heavy, design: .rounded))
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(.white.opacity(0.9))
+                                .shadow(color: .black.opacity(0.1), radius: 6, x: 0, y: 3)
+                        )
                 }
 
                 ToolbarItem(placement: .primaryAction) {
